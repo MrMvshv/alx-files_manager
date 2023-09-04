@@ -1,4 +1,4 @@
-import redis from 'redis';
+const redis = require('redis');
 
 class RedisClient {
   constructor() {
