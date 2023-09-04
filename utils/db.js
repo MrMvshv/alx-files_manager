@@ -17,6 +17,8 @@ class DBClient {
         console.log('Connection to MongoDB successful');
       }
     });
+
+    this.db = this.client.db();
   }
 
   isAlive() {
@@ -24,15 +26,13 @@ class DBClient {
   }
 
   async nbUsers() {
-    const db = this.client.db();
-    const usersCollection = db.collection('users');
+    const usersCollection = this.db.collection('users');
     const count = await usersCollection.countDocuments();
     return count;
   }
 
   async nbFiles() {
-    const db = this.client.db();
-    const filesCollection = db.collection('files');
+    const filesCollection = this.db.collection('files');
     const count = await filesCollection.countDocuments();
     return count;
   }
