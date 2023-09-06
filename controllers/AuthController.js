@@ -48,7 +48,7 @@ class AuthController {
         // console.log("redisKey: ", redisKey);
         // console.log("userId: ", userId);
         // console.log("expTime: ", expTime);
-        await redisClient.set(redisKey, userId, 'EX', expTime);
+        await redisClient.set(redisKey, userId, expTime);
         // console.log("Redis set operation completed.");
       } else {
         console.error('redisKey or user.id is undefined.');

@@ -1,4 +1,5 @@
 const sha1 = require('sha1');
+const { ObjectId } = require('mongodb');
 const dbClient = require('../utils/db');
 const redisClient = require('../utils/redis');
 
@@ -57,15 +58,20 @@ class UsersController {
       if (!token) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+      // console.log("getting user, token: ", token)
 
       // Check if the token exists in Redis, retrieve user ID
       const userId = await redisClient.get(`auth_${token}`);
       if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+      // console.log("user id: ", userId);
+      // Convert userId to ObjectId
+      const userIdObject = new ObjectId(userId);
+      // console.log("user id obj: ", userIdObject);
 
       // Retrieve the user from your database using the user ID
-      const user = await dbClient.db.collection('users').findOne({ _id: userId });
+      const user = await dbClient.db.collection('users').findOne({ _id: userIdObject });
       if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
