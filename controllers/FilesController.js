@@ -1,20 +1,25 @@
+const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const { ObjectId } = require('mongodb');
 const dbClient = require('../utils/db');
 const getUserFromToken = require('./getUserFromToken');
-const { FOLDER_PATH } = process.env; // Use FOLDER_PATH environment variable for storing files
+
+let { FOLDER_PATH } = process.env; // Use FOLDER_PATH environment variable for storing files
 
 class FilesController {
   static async postUpload(req, res) {
     // Call getUserFromToken to retrieve the user
-    const user = await getUserFromToken(req, res);
 
     try {
+      const user = await getUserFromToken(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
       const { name, type, parentId = 0, isPublic = false, data } = req.body;
 
       // Check if the user is authorized
-      const userId = user.id;
+      const userId = user._id;
       if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
@@ -34,12 +39,15 @@ class FilesController {
       if (parentId !== 0) {
         const parentFile = await dbClient.db.collection('files').findOne({
           _id: ObjectId(parentId),
-          type: 'folder',
         });
+	console.log('parentFile: ', parentFile);
 
         if (!parentFile) {
           return res.status(400).json({ error: 'Parent not found' });
         }
+	if (!parentFile.type == 'folder') {
+          return res.status(400).json({ error: 'Parent is not a folder' });
+	}
       }
 
       // Handle file data if type is file or image
@@ -56,7 +64,7 @@ class FilesController {
         }
 
         // Generate a unique filename
-        const fileName = `${uuidv4()}.${type === 'image' ? 'png' : 'txt'}`;
+        const fileName = `${uuidv4()}`;
         localPath = path.join(FOLDER_PATH, fileName);
 
         // Write the file to disk
@@ -69,13 +77,24 @@ class FilesController {
         name,
         type,
         isPublic,
-        parentId: ObjectId(parentId),
+        parentId: parentId,
         localPath,
       };
+      if (!newFile.parentId){
+        newFile.parentId = 0;
+      }
 
       const result = await dbClient.db.collection('files').insertOne(newFile);
-
-      return res.status(201).json(result.ops[0]);
+      
+      const fmtResult = {
+        id: result.ops[0]._id,
+        userId: result.ops[0].userId,
+        name: result.ops[0].name,
+        type: result.ops[0].type, 
+        isPublic: result.ops[0].isPublic,
+        parentId: result.ops[0].parentId
+      }
+      return res.status(201).json(fmtResult);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Internal Server Error' });
