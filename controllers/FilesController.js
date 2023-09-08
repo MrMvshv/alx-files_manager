@@ -157,10 +157,11 @@ class FilesController {
 
       // Convert the parentId query parameter to ObjectId
       const parentId = req.query.parentId || '0';
-      const parentIdObject = new ObjectId(parentId);
+      let parentIdObject = '0'; // Default value if parentId is not provided
 
-      const pageSize = 20;
-      const skip = page * pageSize;
+      if (ObjectId.isValid(parentId)) {
+        parentIdObject = new ObjectId(parentId);
+      }
 
       // Retrieve the user based on the token
       const user = await dbClient.db.collection('users').findOne({ _id: new ObjectId(userId) });
