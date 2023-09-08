@@ -159,6 +159,9 @@ class FilesController {
       const parentId = req.query.parentId || '0';
       const parentIdObject = new ObjectId(parentId);
 
+      const pageSize = 20;
+      const skip = page * pageSize;
+
       // Retrieve the user based on the token
       const user = await dbClient.db.collection('users').findOne({ _id: new ObjectId(userId) });
       if (!user) {
@@ -166,7 +169,8 @@ class FilesController {
       }
 
       // Query for file documents matching the user and parentId, with pagination
-      const page = parseInt(req.query.page, 10) || 0;
+      // Check if page query parameter is undefined and set the default to 0
+      const page = req.query.page === undefined ? 0 : parseInt(req.query.page, 10);
       const pageSize = 20;
       const skip = page * pageSize;
 
