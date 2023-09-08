@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { ObjectId } = require('mongodb');
 const dbClient = require('../utils/db');
+const redisClient = require('../utils/redis');
 const getUserFromToken = require('./getUserFromToken');
 
 let { FOLDER_PATH } = process.env; // Use FOLDER_PATH environment variable for storing files
@@ -16,7 +17,9 @@ class FilesController {
       if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      const { name, type, parentId = 0, isPublic = false, data } = req.body;
+      const {
+        name, type, parentId = 0, isPublic = false, data,
+      } = req.body;
 
       // Check if the user is authorized
       const userId = user._id;
@@ -44,9 +47,9 @@ class FilesController {
         if (!parentFile) {
           return res.status(400).json({ error: 'Parent not found' });
         }
-	if (parentFile.type !== 'folder') {
+        if (parentFile.type !== 'folder') {
           return res.status(400).json({ error: 'Parent is not a folder' });
-	}
+        }
       }
 
       // Handle file data if type is file or image
@@ -76,29 +79,30 @@ class FilesController {
         name,
         type,
         isPublic,
-        parentId: parentId,
+        parentId,
         localPath,
       };
-      if (!newFile.parentId){
+      if (!newFile.parentId) {
         newFile.parentId = 0;
       }
 
       const result = await dbClient.db.collection('files').insertOne(newFile);
-      
+
       const fmtResult = {
         id: result.ops[0]._id,
         userId: result.ops[0].userId,
         name: result.ops[0].name,
-        type: result.ops[0].type, 
+        type: result.ops[0].type,
         isPublic: result.ops[0].isPublic,
-        parentId: result.ops[0].parentId
-      }
+        parentId: result.ops[0].parentId,
+      };
       return res.status(201).json(fmtResult);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
+
   static async getShow(req, res) {
     try {
       // Retrieve the token from the X-Token header
@@ -123,7 +127,7 @@ class FilesController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Check if the file document exists and is linked to the user and the ID passed as a parameter
+      // Check the file document exists and is linked to the user and the ID passed as a parameter
       const file = await dbClient.db.collection('files').findOne({ _id: fileIdObject, userId: user._id });
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -162,7 +166,7 @@ class FilesController {
       }
 
       // Query for file documents matching the user and parentId, with pagination
-      const page = parseInt(req.query.page) || 0;
+      const page = parseInt(req.query.page, 10) || 0;
       const pageSize = 20;
       const skip = page * pageSize;
 
@@ -204,7 +208,7 @@ class FilesController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Check if the file document exists and is linked to the user and the ID passed as a parameter
+      // Check if file document exists and is linked to the user and the ID passed as a parameter
       const file = await dbClient.db.collection('files').findOne({ _id: fileIdObject, userId: user._id });
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -245,7 +249,7 @@ class FilesController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Check if the file document exists and is linked to the user and the ID passed as a parameter
+      // Check if file document exists and is linked to the user and the ID passed as a parameter
       const file = await dbClient.db.collection('files').findOne({ _id: fileIdObject, userId: user._id });
       if (!file) {
         return res.status(404).json({ error: 'Not found' });

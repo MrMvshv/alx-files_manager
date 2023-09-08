@@ -26,7 +26,7 @@ async function getUserFromToken(req) {
     }
 
     // Return the user object (email and id) as a JSON response with status code 200
-    return user
+    return user;
   } catch (error) {
     console.error(error);
     throw new Error('Internal Server Error');
